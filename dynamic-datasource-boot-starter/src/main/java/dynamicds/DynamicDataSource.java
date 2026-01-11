@@ -1,6 +1,5 @@
 package dynamicds;
 
-import java.lang.reflect.Method;
 import java.lang.reflect.UndeclaredThrowableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,8 +15,6 @@ import org.springframework.transaction.TransactionDefinition;
 public interface DynamicDataSource<T extends DynamicDataSource<T>> {
 
     Logger log = LoggerFactory.getLogger(DynamicDataSource.class);
-
-    Method useDataSourceMethod = getUseDataSourceMethod();
 
     /**
      * Return a new/cached instance with specified {@link javax.sql.DataSource} bean name.
@@ -87,14 +84,6 @@ public interface DynamicDataSource<T extends DynamicDataSource<T>> {
         }
         tm.commit(transaction);
         return result;
-    }
-
-    private static Method getUseDataSourceMethod() {
-        try {
-            return DynamicDataSource.class.getMethod("withDataSource", String.class);
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     record T2(Object client, PlatformTransactionManager transactionManager) {}

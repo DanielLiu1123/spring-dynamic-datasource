@@ -1,7 +1,9 @@
 package examples.mybatis;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
+import dynamicds.ThrowingConsumer;
 import org.junit.jupiter.api.Test;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,6 +60,30 @@ public class MyBatisIT {
         userMapper.withDataSource("postgres2").insertUser(new User(2L, "Bob"));
         assertThat(userMapper.withDataSource("postgres2").findAllUsers())
                 .containsExactlyInAnyOrder(new User(2L, "Bob"));
+    }
+
+    @Test
+    void testTx() {
+        assertThatCode(() -> {
+                    userMapper.tx("postgres1", (ThrowingConsumer<UserMapper>) mapper -> {
+                        mapper.insertUser(new User(1L, "Alice"));
+                        mapper.insertUser(new User(2L, "Bob"));
+                        throw new RuntimeException("Test exception");
+                    });
+                })
+                .isInstanceOf(RuntimeException.class);
+
+        assertThatCode(() -> {
+                    userMapper.tx("postgres2", (ThrowingConsumer<UserMapper>) mapper -> {
+                        mapper.insertUser(new User(3L, "Charlie"));
+                        mapper.insertUser(new User(4L, "David"));
+                        throw new RuntimeException("Test exception");
+                    });
+                })
+                .isInstanceOf(RuntimeException.class);
+
+        assertThat(userMapper.findAllUsers()).isEmpty();
+        assertThat(userMapper.withDataSource("postgres2").findAllUsers()).isEmpty();
     }
 
     @Configuration(proxyBeanMethods = false)
