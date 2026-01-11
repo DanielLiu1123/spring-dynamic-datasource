@@ -36,6 +36,7 @@ public class MyBatisIT {
 
     @DynamicPropertySource
     static void overrideProps(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.name", () -> "postgres1");
         registry.add("spring.datasource.url", postgres1::getJdbcUrl);
         registry.add("spring.datasource.username", postgres1::getUsername);
         registry.add("spring.datasource.password", postgres1::getPassword);
@@ -95,6 +96,15 @@ public class MyBatisIT {
         assertThat(userMapper.withDataSource("dataSource").findAllUsers())
                 .containsExactlyInAnyOrder(new User(1L, "Alice"));
         assertThat(output.getOut()).contains("dataSource 'dataSource' not found, available dataSources:");
+    }
+
+    @Test
+    void whenUseDataSourceNameToLookup_shouldReturnCorrectDataSource(CapturedOutput output) {
+        userMapper.insertUser(new User(1L, "Alice"));
+
+        assertThat(userMapper.withDataSource("postgres1").findAllUsers())
+                .containsExactlyInAnyOrder(new User(1L, "Alice"));
+        assertThat(output.getOut()).doesNotContain("dataSource 'postgres1' not found, available dataSources:");
     }
 
     @Configuration(proxyBeanMethods = false)
