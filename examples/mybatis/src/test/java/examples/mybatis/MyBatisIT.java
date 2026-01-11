@@ -52,7 +52,7 @@ public class MyBatisIT {
     @AfterEach
     void cleanup() {
         userMapper.deleteAllUsers();
-        userMapper.withDataSource("postgres2").deleteAllUsers();
+        userMapper.use("postgres2").deleteAllUsers();
     }
 
     @Test
@@ -62,17 +62,16 @@ public class MyBatisIT {
         assertThat(userMapper.findAllUsers()).containsExactlyInAnyOrder(new User(1L, "Alice"));
 
         // Read from postgres2, should be empty
-        assertThat(userMapper.withDataSource("postgres2").findAllUsers()).isEmpty();
+        assertThat(userMapper.use("postgres2").findAllUsers()).isEmpty();
 
         // Insert a record to postgres2
-        userMapper.withDataSource("postgres2").insertUser(new User(2L, "Bob"));
-        assertThat(userMapper.withDataSource("postgres2").findAllUsers())
-                .containsExactlyInAnyOrder(new User(2L, "Bob"));
+        userMapper.use("postgres2").insertUser(new User(2L, "Bob"));
+        assertThat(userMapper.use("postgres2").findAllUsers()).containsExactlyInAnyOrder(new User(2L, "Bob"));
     }
 
     @Test
     void whenExceptionThrownInTransaction_thenRollback() {
-        assertThatCode(() -> userMapper.withTransaction(mapper -> {
+        assertThatCode(() -> userMapper.txDo(mapper -> {
                     mapper.insertUser(new User(1L, "Alice"));
                     mapper.insertUser(new User(2L, "Bob"));
                     throw new RuntimeException("Test exception");
@@ -80,21 +79,20 @@ public class MyBatisIT {
                 .isInstanceOf(RuntimeException.class);
         assertThat(userMapper.findAllUsers()).isEmpty();
 
-        assertThatCode(() -> userMapper.withDataSource("postgres2").withTransaction(mapper -> {
+        assertThatCode(() -> userMapper.use("postgres2").txDo(mapper -> {
                     mapper.insertUser(new User(3L, "Charlie"));
                     mapper.insertUser(new User(4L, "David"));
                     throw new RuntimeException("Test exception");
                 }))
                 .isInstanceOf(RuntimeException.class);
-        assertThat(userMapper.withDataSource("postgres2").findAllUsers()).isEmpty();
+        assertThat(userMapper.use("postgres2").findAllUsers()).isEmpty();
     }
 
     @Test
     void whenUseDataSourceBeanNameToLookup_shouldNotFindAnyDataSource(CapturedOutput output) {
         userMapper.insertUser(new User(1L, "Alice"));
 
-        assertThat(userMapper.withDataSource("dataSource").findAllUsers())
-                .containsExactlyInAnyOrder(new User(1L, "Alice"));
+        assertThat(userMapper.use("dataSource").findAllUsers()).containsExactlyInAnyOrder(new User(1L, "Alice"));
         assertThat(output.getOut()).contains("dataSource 'dataSource' not found, available dataSources:");
     }
 
@@ -102,8 +100,7 @@ public class MyBatisIT {
     void whenUseDataSourceNameToLookup_shouldReturnCorrectDataSource(CapturedOutput output) {
         userMapper.insertUser(new User(1L, "Alice"));
 
-        assertThat(userMapper.withDataSource("postgres1").findAllUsers())
-                .containsExactlyInAnyOrder(new User(1L, "Alice"));
+        assertThat(userMapper.use("postgres1").findAllUsers()).containsExactlyInAnyOrder(new User(1L, "Alice"));
         assertThat(output.getOut()).doesNotContain("dataSource 'postgres1' not found, available dataSources:");
     }
 
