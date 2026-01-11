@@ -3,8 +3,11 @@ package examples.mybatis;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,7 +15,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-@SpringBootTest
+@SpringBootTest(classes = MyBatisIT.Cfg.class)
 @Testcontainers(disabledWithoutDocker = true)
 public class MyBatisIT {
 
@@ -56,4 +59,9 @@ public class MyBatisIT {
         assertThat(userMapper.withDataSource("postgres2").findAllUsers())
                 .containsExactlyInAnyOrder(new User(2L, "Bob"));
     }
+
+    @Configuration(proxyBeanMethods = false)
+    @EnableAutoConfiguration
+    @MapperScan("examples.mybatis")
+    static class Cfg {}
 }

@@ -1,12 +1,12 @@
 spring:
   datasource:
-    name: ds1
+    name: postgres1
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://localhost:5432/testdb
     username: root
     password: root
     datasources:
-      - name: ds2
+      - name: postgres2
         driver-class-name: org.postgresql.Driver
         url: jdbc:postgresql://localhost:5432/testdb
         username: root

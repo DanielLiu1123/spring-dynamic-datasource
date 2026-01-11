@@ -9,8 +9,9 @@ import org.springframework.context.annotation.Configuration;
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnClass(MybatisAutoConfiguration.class)
 public class MyBatisConfiguration {
+
     @Bean
-    static MyBatisDynamicDataSourceBeanPostProcessor myBatisDynamicDataSourceBeanPostProcessor(ApplicationContext ctx) {
-        return new MyBatisDynamicDataSourceBeanPostProcessor(ctx);
+    MyBatisClientProxy myBatisClientProxy(ApplicationContext ctx) {
+        return new MyBatisClientProxy(ctx);
     }
 }
