@@ -23,7 +23,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 
-public class MyBatisClientProxy implements ClientProxy, SmartInitializingSingleton {
+class MyBatisClientProxy implements ClientProxy, SmartInitializingSingleton {
     private static final Logger log = LoggerFactory.getLogger(MyBatisClientProxy.class);
 
     private final ConcurrentMap<String, Object> mappers = new ConcurrentHashMap<>();
