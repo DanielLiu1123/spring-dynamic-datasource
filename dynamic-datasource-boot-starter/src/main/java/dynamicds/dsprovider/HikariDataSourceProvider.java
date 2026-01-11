@@ -1,7 +1,8 @@
-package dynamicds;
+package dynamicds.dsprovider;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import dynamicds.DataSourcesProperties;
 import javax.sql.DataSource;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.core.env.Environment;
@@ -9,12 +10,17 @@ import org.springframework.core.env.Environment;
 /**
  * Default implementation of {@link DataSourceProvider} that creates {@link HikariDataSource}.
  */
-public class HikariDataSourceProvider implements DataSourceProvider {
+class HikariDataSourceProvider implements DataSourceProvider {
 
     private final HikariConfig defaultHikariConfig;
 
     public HikariDataSourceProvider(Environment environment) {
         this.defaultHikariConfig = Binder.get(environment).bindOrCreate("spring.datasource.hikari", HikariConfig.class);
+    }
+
+    @Override
+    public boolean supports(Class<? extends DataSource> type) {
+        return HikariDataSource.class.isAssignableFrom(type);
     }
 
     @Override

@@ -48,7 +48,15 @@ public class MyBatisClientProxy implements ClientProxy, SmartInitializingSinglet
 
     @Override
     public boolean supports(Object client, Object dataSource) {
-        return AopProxyUtils.proxiedUserInterfaces(client).length > 0 && hasDataSource(dataSource);
+        var isProxied = AopProxyUtils.proxiedUserInterfaces(client).length > 0;
+        if (!isProxied) {
+            return false;
+        }
+        var ok = hasDataSource(dataSource);
+        if (!ok) {
+            log.warn("dataSource '{}' not found, available dataSources: {}", dataSource, dataSources.keySet());
+        }
+        return ok;
     }
 
     @Override

@@ -11,7 +11,7 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.util.function.SingletonSupplier;
 
-public final class ClientProxies {
+final class ClientProxies {
 
     private static final Logger log = LoggerFactory.getLogger(ClientProxies.class);
 

@@ -5,10 +5,13 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -18,6 +21,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @SpringBootTest(classes = MyBatisIT.Cfg.class)
 @Testcontainers(disabledWithoutDocker = true)
+@ExtendWith(OutputCaptureExtension.class)
 public class MyBatisIT {
 
     @Container
@@ -32,7 +36,6 @@ public class MyBatisIT {
 
     @DynamicPropertySource
     static void overrideProps(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.name", () -> "postgres1");
         registry.add("spring.datasource.url", postgres1::getJdbcUrl);
         registry.add("spring.datasource.username", postgres1::getUsername);
         registry.add("spring.datasource.password", postgres1::getPassword);
@@ -67,13 +70,14 @@ public class MyBatisIT {
     }
 
     @Test
-    void testTx() {
+    void whenExceptionThrownInTransaction_thenRollback() {
         assertThatCode(() -> userMapper.withTransaction(mapper -> {
                     mapper.insertUser(new User(1L, "Alice"));
                     mapper.insertUser(new User(2L, "Bob"));
                     throw new RuntimeException("Test exception");
                 }))
                 .isInstanceOf(RuntimeException.class);
+        assertThat(userMapper.findAllUsers()).isEmpty();
 
         assertThatCode(() -> userMapper.withDataSource("postgres2").withTransaction(mapper -> {
                     mapper.insertUser(new User(3L, "Charlie"));
@@ -81,9 +85,16 @@ public class MyBatisIT {
                     throw new RuntimeException("Test exception");
                 }))
                 .isInstanceOf(RuntimeException.class);
-
-        assertThat(userMapper.findAllUsers()).isEmpty();
         assertThat(userMapper.withDataSource("postgres2").findAllUsers()).isEmpty();
+    }
+
+    @Test
+    void whenUseDataSourceBeanNameToLookup_shouldNotFindAnyDataSource(CapturedOutput output) {
+        userMapper.insertUser(new User(1L, "Alice"));
+
+        assertThat(userMapper.withDataSource("dataSource").findAllUsers())
+                .containsExactlyInAnyOrder(new User(1L, "Alice"));
+        assertThat(output.getOut()).contains("dataSource 'dataSource' not found, available dataSources:");
     }
 
     @Configuration(proxyBeanMethods = false)
