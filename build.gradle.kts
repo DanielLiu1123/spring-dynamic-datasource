@@ -2,6 +2,7 @@ import net.ltgt.gradle.errorprone.errorprone
 
 plugins {
     id("org.springframework.boot") apply false
+    id("io.spring.dependency-management") apply false
     id("com.diffplug.spotless") apply false
     id("net.ltgt.errorprone") apply false
     id("io.github.danielliu1123.deployer")
@@ -9,6 +10,7 @@ plugins {
 
 val errorProneCoreVersion: String = providers.gradleProperty("errorProneCoreVersion").get()
 val nullAwayVersion: String = providers.gradleProperty("nullAwayVersion").get()
+val springBootVersion: String = providers.gradleProperty("springBootVersion").get()
 
 deploy {
     dirs = subprojects.map { it.layout.buildDirectory.dir("repo").get().asFile }.filter { it.exists() }
@@ -46,16 +48,17 @@ subprojects {
         mavenCentral()
     }
 
-    dependencies {
-        "compileOnly"("org.projectlombok:lombok:+")
-        "annotationProcessor"("org.projectlombok:lombok:+")
-        "testCompileOnly"("org.projectlombok:lombok:+")
-        "testAnnotationProcessor"("org.projectlombok:lombok:+")
+    apply(plugin = "io.spring.dependency-management")
+    configure<io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension> {
+        imports {
+            mavenBom("org.springframework.boot:spring-boot-dependencies:$springBootVersion")
+        }
+    }
 
-        "testImplementation"(platform("org.junit:junit-bom:+"))
+    dependencies {
         "testImplementation"("org.junit.jupiter:junit-jupiter")
         "testRuntimeOnly"("org.junit.platform:junit-platform-launcher")
-        "testImplementation"("org.assertj:assertj-core:+")
+        "testImplementation"("org.assertj:assertj-core")
     }
 
     tasks.withType<Test>().configureEach {
