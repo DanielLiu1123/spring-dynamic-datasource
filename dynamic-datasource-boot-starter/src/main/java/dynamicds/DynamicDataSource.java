@@ -19,7 +19,7 @@ public interface DynamicDataSource<T extends DynamicDataSource<T>> {
      */
     @SuppressWarnings("unchecked")
     default T withDataSource(String dataSource) {
-        return (T) TransactionSupport.resolveContext(this, dataSource).client();
+        return (T) TransactionSupport.resolveClient(this, dataSource);
     }
 
     default void withTransaction(ThrowingConsumer<T> action) {
@@ -40,11 +40,11 @@ public interface DynamicDataSource<T extends DynamicDataSource<T>> {
     @SuppressWarnings("unchecked")
     default <R> R withTransactionResult(TransactionDefinition definition, ThrowingFunction<T, R> action) {
         var client = (T) this;
-        var dataSource = ClientProxies.getProxies().stream()
+        var dataSource = Suppliers.getProxies().stream()
                 .map(p -> p.getDataSource(client))
                 .filter(Objects::nonNull)
                 .findFirst()
-                .orElseGet(ClientProxies::getDefaultDataSource);
+                .orElseGet(Suppliers::getDefaultDataSource);
         return TransactionSupport.executeInTransaction(client, dataSource, definition, action);
     }
 }

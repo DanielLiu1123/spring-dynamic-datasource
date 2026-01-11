@@ -1,9 +1,9 @@
 package dynamicds.dsprovider;
 
+import dynamicds.NamedDataSource;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.core.env.Environment;
-import org.springframework.util.ClassUtils;
 
 /**
  * Factory for creating DataSourceProvider instances.
@@ -14,13 +14,9 @@ public final class DataSourceProviders {
 
     public static List<DataSourceProvider> getProviders(Environment env) {
         var result = new ArrayList<DataSourceProvider>();
-        if (isPresent("com.zaxxer.hikari.HikariDataSource")) {
+        if (NamedDataSource.HIKARI_PRESENT) {
             result.add(new HikariDataSourceProvider(env));
         }
         return result;
-    }
-
-    private static boolean isPresent(String className) {
-        return ClassUtils.isPresent(className, DataSourceProviders.class.getClassLoader());
     }
 }

@@ -12,7 +12,7 @@ final class TransactionSupport {
     private TransactionSupport() {}
 
     static ClientContext resolveContext(Object self, Object dataSource) {
-        var proxies = ClientProxies.getProxies();
+        var proxies = Suppliers.getProxies();
         for (var proxy : proxies) {
             if (proxy.supports(self, dataSource)) {
                 var client = proxy.createClient(self, dataSource);
@@ -20,7 +20,21 @@ final class TransactionSupport {
                 return new ClientContext(client, tm);
             }
         }
-        return new ClientContext(self, ClientProxies.getDefaultTransactionManager());
+        return new ClientContext(self, Suppliers.getDefaultTransactionManager());
+    }
+
+    static Object resolveClient(Object self, Object dataSource) {
+        var proxies = Suppliers.getProxies();
+        for (var proxy : proxies) {
+            if (proxy.supports(self, dataSource)) {
+                return proxy.createClient(self, dataSource);
+            }
+        }
+        log.warn(
+                "dataSource '{}' not found, available dataSources: {}",
+                dataSource,
+                Suppliers.getDataSources().keySet());
+        return self;
     }
 
     @SuppressWarnings("unchecked")

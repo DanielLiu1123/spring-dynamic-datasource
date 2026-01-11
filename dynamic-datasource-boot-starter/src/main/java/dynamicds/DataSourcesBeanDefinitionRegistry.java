@@ -1,9 +1,9 @@
 package dynamicds;
 
-import com.zaxxer.hikari.HikariDataSource;
 import dynamicds.dsprovider.DataSourceProvider;
 import dynamicds.dsprovider.DataSourceProviders;
 import java.util.List;
+import java.util.Objects;
 import javax.sql.DataSource;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -38,7 +38,7 @@ class DataSourcesBeanDefinitionRegistry implements BeanDefinitionRegistryPostPro
         for (var ds : properties.datasources()) {
             var type = ds.type() != null ? ds.type() : mainDataSourceType;
             var provider = dataSourceProviders.stream()
-                    .filter(p -> p.supports(type))
+                    .filter(p -> Objects.equals(p.getType(), type))
                     .findFirst()
                     .orElseThrow(
                             () -> new IllegalStateException("No DataSourceProvider found for type: " + type.getName()));
@@ -52,8 +52,11 @@ class DataSourcesBeanDefinitionRegistry implements BeanDefinitionRegistryPostPro
     }
 
     @SuppressWarnings("unchecked")
-    private static Class<? extends DataSource> getMainDataSourceType(Binder binder) {
-        return binder.bind("spring.datasource.type", Class.class).orElse(HikariDataSource.class);
+    private Class<? extends DataSource> getMainDataSourceType(Binder binder) {
+        return binder.bind("spring.datasource.type", Class.class).orElseGet(() -> dataSourceProviders.stream()
+                .map(DataSourceProvider::getType)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("No DataSourceProvider available")));
     }
 
     @Override

@@ -1,8 +1,11 @@
 package dynamicds;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,9 +14,9 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.util.function.SingletonSupplier;
 
-final class ClientProxies {
+public final class Suppliers {
 
-    private static final Logger log = LoggerFactory.getLogger(ClientProxies.class);
+    private static final Logger log = LoggerFactory.getLogger(Suppliers.class);
 
     private static final Supplier<List<ClientProxy>> PROXIES = SingletonSupplier.of(() -> {
         var context = SpringUtil.getContext();
@@ -41,7 +44,14 @@ final class ClientProxies {
         return tm;
     });
 
-    private ClientProxies() {}
+    private static final Supplier<Map<String, NamedDataSource>> DATA_SOURCES = SingletonSupplier.of(() -> {
+        var context = SpringUtil.getContext();
+        return context.getBeanProvider(DataSource.class).stream()
+                .map(NamedDataSource::of)
+                .collect(Collectors.toMap(NamedDataSource::name, Function.identity()));
+    });
+
+    private Suppliers() {}
 
     public static List<ClientProxy> getProxies() {
         return PROXIES.get();
@@ -53,5 +63,9 @@ final class ClientProxies {
 
     public static PlatformTransactionManager getDefaultTransactionManager() {
         return DEFAULT_TRANSACTION_MANAGER.get();
+    }
+
+    public static Map<String, NamedDataSource> getDataSources() {
+        return DATA_SOURCES.get();
     }
 }

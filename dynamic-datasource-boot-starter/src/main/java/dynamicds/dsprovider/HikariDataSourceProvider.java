@@ -19,8 +19,8 @@ class HikariDataSourceProvider implements DataSourceProvider {
     }
 
     @Override
-    public boolean supports(Class<? extends DataSource> type) {
-        return HikariDataSource.class.isAssignableFrom(type);
+    public Class<? extends DataSource> getType() {
+        return HikariDataSource.class;
     }
 
     @Override

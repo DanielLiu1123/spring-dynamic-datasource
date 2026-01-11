@@ -9,12 +9,11 @@ import javax.sql.DataSource;
 public interface DataSourceProvider {
 
     /**
-     * Checks if this provider supports the given DataSource type.
+     * Returns the DataSource type supported by this provider.
      *
-     * @param type the DataSource type
-     * @return true if this provider supports the given DataSource type
+     * @return the DataSource type
      */
-    boolean supports(Class<? extends DataSource> type);
+    Class<? extends DataSource> getType();
 
     /**
      * Creates a DataSource based on the provided configuration.
