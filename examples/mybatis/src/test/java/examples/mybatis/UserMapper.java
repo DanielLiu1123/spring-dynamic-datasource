@@ -11,4 +11,7 @@ public interface UserMapper extends DynamicDataSource<UserMapper> {
 
     @Insert("INSERT INTO \"user\" (id, name) VALUES (#{id}, #{name})")
     void insertUser(User user);
+
+    @Select("DELETE FROM \"user\"")
+    void deleteAllUsers();
 }

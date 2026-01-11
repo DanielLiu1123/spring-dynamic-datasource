@@ -3,7 +3,7 @@ package examples.mybatis;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
-import dynamicds.ThrowingConsumer;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,7 +12,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -46,8 +45,13 @@ public class MyBatisIT {
     @Autowired
     UserMapper userMapper;
 
+    @AfterEach
+    void cleanup() {
+        userMapper.deleteAllUsers();
+        userMapper.withDataSource("postgres2").deleteAllUsers();
+    }
+
     @Test
-    @Transactional
     void insertToPostgres1_thenReadFromPostgres2_shouldReturnEmptyList() {
         // Insert a record to postgres1
         userMapper.insertUser(new User(1L, "Alice"));
@@ -64,22 +68,18 @@ public class MyBatisIT {
 
     @Test
     void testTx() {
-        assertThatCode(() -> {
-                    userMapper.tx("postgres1", (ThrowingConsumer<UserMapper>) mapper -> {
-                        mapper.insertUser(new User(1L, "Alice"));
-                        mapper.insertUser(new User(2L, "Bob"));
-                        throw new RuntimeException("Test exception");
-                    });
-                })
+        assertThatCode(() -> userMapper.withTransaction(mapper -> {
+                    mapper.insertUser(new User(1L, "Alice"));
+                    mapper.insertUser(new User(2L, "Bob"));
+                    throw new RuntimeException("Test exception");
+                }))
                 .isInstanceOf(RuntimeException.class);
 
-        assertThatCode(() -> {
-                    userMapper.tx("postgres2", (ThrowingConsumer<UserMapper>) mapper -> {
-                        mapper.insertUser(new User(3L, "Charlie"));
-                        mapper.insertUser(new User(4L, "David"));
-                        throw new RuntimeException("Test exception");
-                    });
-                })
+        assertThatCode(() -> userMapper.withDataSource("postgres2").withTransaction(mapper -> {
+                    mapper.insertUser(new User(3L, "Charlie"));
+                    mapper.insertUser(new User(4L, "David"));
+                    throw new RuntimeException("Test exception");
+                }))
                 .isInstanceOf(RuntimeException.class);
 
         assertThat(userMapper.findAllUsers()).isEmpty();

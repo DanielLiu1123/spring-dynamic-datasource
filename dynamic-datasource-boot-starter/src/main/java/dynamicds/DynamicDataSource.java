@@ -39,14 +39,14 @@ public interface DynamicDataSource<T extends DynamicDataSource<T>> {
         return new T2(this, ClientProxies.getDefaultTransactionManager());
     }
 
-    default void tx(ThrowingConsumer<T> action) {
-        tx(client -> {
+    default void withTransaction(ThrowingConsumer<T> action) {
+        withTransactionResult(client -> {
             action.accept(client);
             return null;
         });
     }
 
-    default <R> R tx(ThrowingFunction<T, R> action) {
+    default <R> R withTransactionResult(ThrowingFunction<T, R> action) {
         var proxies = ClientProxies.getProxies();
         for (var proxy : proxies) {
             var ds = proxy.getDataSource(this);
@@ -55,17 +55,6 @@ public interface DynamicDataSource<T extends DynamicDataSource<T>> {
             }
         }
         return tx0(ClientProxies.getDefaultDataSource(), action);
-    }
-
-    default void tx(String dataSource, ThrowingConsumer<T> action) {
-        tx(dataSource, client -> {
-            action.accept(client);
-            return null;
-        });
-    }
-
-    default <R> R tx(String dataSource, ThrowingFunction<T, R> action) {
-        return tx0(dataSource, action);
     }
 
     @SuppressWarnings("unchecked")
