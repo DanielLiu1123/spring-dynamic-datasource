@@ -3,6 +3,7 @@ package dynamicds;
 import com.zaxxer.hikari.HikariConfig;
 import java.util.List;
 import java.util.Objects;
+import javax.sql.DataSource;
 import org.jspecify.annotations.Nullable;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.jdbc.DatabaseDriver;
@@ -17,7 +18,13 @@ public record DataSourcesProperties(List<DataSource> datasources) {
     }
 
     public record DataSource(
-            String name, String driverClassName, String url, String username, String password, Hikari hikari) {
+            String name,
+            @Nullable Class<? extends javax.sql.DataSource> type,
+            String driverClassName,
+            String url,
+            String username,
+            String password,
+            Hikari hikari) {
 
         public DataSource {
             Objects.requireNonNull(name, "name must not be null");

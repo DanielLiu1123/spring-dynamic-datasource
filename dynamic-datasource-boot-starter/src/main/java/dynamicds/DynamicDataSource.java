@@ -1,7 +1,7 @@
 package dynamicds;
 
-import java.lang.reflect.Method;
-import javax.sql.DataSource;
+import java.util.Objects;
+import org.springframework.transaction.TransactionDefinition;
 
 /**
  * This interface is used to switch data sources dynamically.
@@ -11,8 +11,6 @@ import javax.sql.DataSource;
  */
 public interface DynamicDataSource<T extends DynamicDataSource<T>> {
 
-    Method useDataSourceMethod = getUseDataSourceMethod();
-
     /**
      * Return a new/cached instance with specified {@link javax.sql.DataSource} bean name.
      *
@@ -21,25 +19,32 @@ public interface DynamicDataSource<T extends DynamicDataSource<T>> {
      */
     @SuppressWarnings("unchecked")
     default T withDataSource(String dataSource) {
-        return (T) this;
+        return (T) TransactionSupport.resolveClient(this, dataSource);
     }
 
-    /**
-     * Return a new/cached instance with specified {@link javax.sql.DataSource}.
-     *
-     * @param dataSource dataSource to use
-     * @return new/cached instance with specified {@link javax.sql.DataSource}
-     */
+    default void withTransaction(ThrowingConsumer<T> action) {
+        withTransaction(TransactionDefinition.withDefaults(), action);
+    }
+
+    default void withTransaction(TransactionDefinition definition, ThrowingConsumer<T> action) {
+        withTransactionResult(definition, client -> {
+            action.accept(client);
+            return null;
+        });
+    }
+
+    default <R> R withTransactionResult(ThrowingFunction<T, R> action) {
+        return withTransactionResult(TransactionDefinition.withDefaults(), action);
+    }
+
     @SuppressWarnings("unchecked")
-    default T withDataSource(DataSource dataSource) {
-        return (T) this;
-    }
-
-    private static Method getUseDataSourceMethod() {
-        try {
-            return DynamicDataSource.class.getMethod("withDataSource", String.class);
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
+    default <R> R withTransactionResult(TransactionDefinition definition, ThrowingFunction<T, R> action) {
+        var client = (T) this;
+        var dataSource = Suppliers.getProxies().stream()
+                .map(p -> p.getDataSource(client))
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElseGet(Suppliers::getDefaultDataSource);
+        return TransactionSupport.executeInTransaction(client, dataSource, definition, action);
     }
 }

@@ -1,7 +1,10 @@
 package dynamicds;
 
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
+import dynamicds.dsprovider.DataSourceProvider;
+import dynamicds.dsprovider.DataSourceProviders;
+import java.util.List;
+import java.util.Objects;
+import javax.sql.DataSource;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
@@ -12,37 +15,48 @@ import org.springframework.core.env.Environment;
 
 /**
  * Register multiple DataSource bean definitions based on DataSourcesProperties.
- *
- * @author Freeman
  */
 class DataSourcesBeanDefinitionRegistry implements BeanDefinitionRegistryPostProcessor {
 
     private final Environment env;
+    private final List<DataSourceProvider> dataSourceProviders;
 
     DataSourcesBeanDefinitionRegistry(Environment env) {
         this.env = env;
+        this.dataSourceProviders = DataSourceProviders.getProviders(env);
     }
 
     @Override
     public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {
-        var properties = Binder.get(env).bindOrCreate(DataSourcesProperties.PREFIX, DataSourcesProperties.class);
+        var binder = Binder.get(env);
+        var properties = binder.bindOrCreate(DataSourcesProperties.PREFIX, DataSourcesProperties.class);
+        var mainDataSourceType = getMainDataSourceType(binder);
         if (properties.datasources().isEmpty()) {
             return;
         }
 
-        var hikariConfig = Binder.get(env).bindOrCreate("spring.datasource.hikari", HikariConfig.class);
-
         for (var ds : properties.datasources()) {
-            var bd = BeanDefinitionBuilder.rootBeanDefinition(HikariDataSource.class, () -> {
-                        // Use com.zaxxer.hikari.HikariDataSource.HikariDataSource(com.zaxxer.hikari.HikariConfig)
-                        // to explicitly trigger the initialization logic
-                        // so that potential errors can be detected earlier (shift left).
-                        var hc = ds.newHikariConfig(hikariConfig);
-                        return new HikariDataSource(hc);
-                    })
+            var type = ds.type() != null ? ds.type() : mainDataSourceType;
+            var provider = dataSourceProviders.stream()
+                    .filter(p -> Objects.equals(p.getType(), type))
+                    .findFirst()
+                    .orElseThrow(
+                            () -> new IllegalStateException("No DataSourceProvider found for type: " + type.getName()));
+
+            var bd = BeanDefinitionBuilder.rootBeanDefinition(DataSource.class, () -> provider.createDataSource(ds))
                     .getBeanDefinition();
-            registry.registerBeanDefinition(ds.name(), bd);
+
+            var beanName = "dataSource#" + ds.name();
+            registry.registerBeanDefinition(beanName, bd);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Class<? extends DataSource> getMainDataSourceType(Binder binder) {
+        return binder.bind("spring.datasource.type", Class.class).orElseGet(() -> dataSourceProviders.stream()
+                .map(DataSourceProvider::getType)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("No DataSourceProvider available")));
     }
 
     @Override
