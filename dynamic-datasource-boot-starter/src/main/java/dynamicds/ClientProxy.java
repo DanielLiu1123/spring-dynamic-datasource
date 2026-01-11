@@ -13,7 +13,7 @@ public interface ClientProxy {
      * Checks if this proxy supports the given client and data source.
      *
      * @param client     the client instance
-     * @param dataSource the data source identifier (bean name or DataSource instance)
+     * @param dataSource the data source identifier (pool name or DataSource instance)
      * @return true if supported
      */
     boolean supports(Object client, Object dataSource);
@@ -21,7 +21,7 @@ public interface ClientProxy {
     /**
      * Creates a transaction manager for the specified data source.
      *
-     * @param dataSource the data source identifier
+     * @param dataSource the data source identifier (pool name or DataSource instance)
      * @return a new or cached transaction manager
      */
     PlatformTransactionManager createTransactionManager(Object dataSource);
@@ -30,7 +30,7 @@ public interface ClientProxy {
      * Creates a new client instance associated with the specified data source.
      *
      * @param client     the original client instance
-     * @param dataSource the data source identifier
+     * @param dataSource the data source identifier (pool name or DataSource instance)
      * @param <T>        the client type
      * @return the proxied client
      */

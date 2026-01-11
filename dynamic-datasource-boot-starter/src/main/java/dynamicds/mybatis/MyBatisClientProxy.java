@@ -2,6 +2,8 @@ package dynamicds.mybatis;
 
 import com.zaxxer.hikari.HikariDataSource;
 import dynamicds.ClientProxy;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,12 +16,14 @@ import org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.aop.framework.AopProxyUtils;
+import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.util.StringUtils;
 
-public class MyBatisClientProxy implements ClientProxy {
+public class MyBatisClientProxy implements ClientProxy, SmartInitializingSingleton {
     private static final Logger log = LoggerFactory.getLogger(MyBatisClientProxy.class);
 
     private final ConcurrentMap<String, SqlSessionTemplate> sqlSessionTemplates = new ConcurrentHashMap<>();
@@ -28,9 +32,18 @@ public class MyBatisClientProxy implements ClientProxy {
     private final ConcurrentMap<DataSource, Set<Object>> dataSourceToClients = new ConcurrentHashMap<>();
 
     private final ConfigurableApplicationContext ctx;
+    private final Map<String, NamedDataSource> dataSources = new HashMap<>();
 
     public MyBatisClientProxy(ApplicationContext ctx) {
         this.ctx = (ConfigurableApplicationContext) ctx;
+    }
+
+    @Override
+    public void afterSingletonsInstantiated() {
+        for (var dataSource : this.ctx.getBeanProvider(DataSource.class)) {
+            var name = datasourceName(dataSource);
+            dataSources.put(name, new NamedDataSource(name, dataSource));
+        }
     }
 
     @Override
@@ -60,8 +73,8 @@ public class MyBatisClientProxy implements ClientProxy {
     }
 
     private boolean hasDataSource(Object dataSource) {
-        if (dataSource instanceof String beanName) {
-            return ctx.containsBean(beanName);
+        if (dataSource instanceof String name) {
+            return dataSources.containsKey(name);
         } else if (dataSource instanceof DataSource) {
             return true;
         } else {
@@ -69,31 +82,33 @@ public class MyBatisClientProxy implements ClientProxy {
         }
     }
 
-    private DataSourceInfo determineDataSource(Object dataSource) {
-        if (dataSource instanceof String beanName) {
-            return newDataSource(ctx.getBean(beanName, DataSource.class));
+    private NamedDataSource determineDataSource(Object dataSource) {
+        if (dataSource instanceof String name) {
+            return Objects.requireNonNull(dataSources.get(name));
         } else if (dataSource instanceof DataSource ds) {
-            return newDataSource(ds);
+            return newNamedDataSource(ds);
         } else {
             throw new IllegalArgumentException("Unsupported dataSource type: " + dataSource.getClass());
         }
     }
 
-    private static DataSourceInfo newDataSource(DataSource dataSource) {
-        var dsName = datasourceName(dataSource);
-        return new DataSourceInfo(dsName, dataSource);
+    private static NamedDataSource newNamedDataSource(DataSource dataSource) {
+        var name = datasourceName(dataSource);
+        return new NamedDataSource(name, dataSource);
     }
 
     private static String datasourceName(DataSource dataSource) {
         if (dataSource instanceof HikariDataSource hikariDataSource) {
-            return hikariDataSource.getPoolName();
+            return StringUtils.hasText(hikariDataSource.getPoolName())
+                    ? hikariDataSource.getPoolName()
+                    : String.valueOf(Objects.hashCode(dataSource));
         }
         return String.valueOf(Objects.hashCode(dataSource));
     }
 
-    private PlatformTransactionManager getOrRegisterTransactionManager(DataSourceInfo dataSourceInfo) {
-        var datasourceName = dataSourceInfo.name();
-        var datasource = dataSourceInfo.dataSource();
+    private PlatformTransactionManager getOrRegisterTransactionManager(NamedDataSource namedDataSource) {
+        var datasourceName = namedDataSource.name();
+        var datasource = namedDataSource.dataSource();
 
         var beanName = "txManager#" + datasourceName;
 
@@ -104,9 +119,9 @@ public class MyBatisClientProxy implements ClientProxy {
         });
     }
 
-    private Object getOrRegisterMapper(Object client, DataSourceInfo dataSourceInfo) {
-        var datasourceName = dataSourceInfo.name();
-        var datasource = dataSourceInfo.dataSource();
+    private Object getOrRegisterMapper(Object client, NamedDataSource namedDataSource) {
+        var datasourceName = namedDataSource.name();
+        var datasource = namedDataSource.dataSource();
 
         var mapperInterface = AopProxyUtils.proxiedUserInterfaces(client)[0];
         var mapperBeanName = mapperInterface.getName() + "#" + datasourceName;
@@ -179,5 +194,5 @@ public class MyBatisClientProxy implements ClientProxy {
         ctx.getBeanFactory().registerSingleton(beanName, bean);
     }
 
-    record DataSourceInfo(String name, DataSource dataSource) {}
+    record NamedDataSource(String name, DataSource dataSource) {}
 }

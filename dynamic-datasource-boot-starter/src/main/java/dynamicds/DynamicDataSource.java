@@ -1,8 +1,5 @@
 package dynamicds;
 
-import java.lang.reflect.UndeclaredThrowableException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.transaction.TransactionDefinition;
 
 /**
@@ -13,8 +10,6 @@ import org.springframework.transaction.TransactionDefinition;
  */
 public interface DynamicDataSource<T extends DynamicDataSource<T>> {
 
-    Logger log = LoggerFactory.getLogger(DynamicDataSource.class);
-
     /**
      * Return a new/cached instance with specified {@link javax.sql.DataSource} bean name.
      *
@@ -23,19 +18,7 @@ public interface DynamicDataSource<T extends DynamicDataSource<T>> {
      */
     @SuppressWarnings("unchecked")
     default T withDataSource(String dataSource) {
-        return (T) resolveContext(dataSource).client();
-    }
-
-    private ClientContext resolveContext(Object dataSource) {
-        var proxies = ClientProxies.getProxies();
-        for (var proxy : proxies) {
-            if (proxy.supports(this, dataSource)) {
-                var client = proxy.createClient(this, dataSource);
-                var tm = proxy.createTransactionManager(dataSource);
-                return new ClientContext(client, tm);
-            }
-        }
-        return new ClientContext(this, ClientProxies.getDefaultTransactionManager());
+        return (T) TransactionSupport.resolveContext(this, dataSource).client();
     }
 
     default void withTransaction(ThrowingConsumer<T> action) {
@@ -53,40 +36,16 @@ public interface DynamicDataSource<T extends DynamicDataSource<T>> {
         return withTransactionResult(TransactionDefinition.withDefaults(), action);
     }
 
+    @SuppressWarnings("unchecked")
     default <R> R withTransactionResult(TransactionDefinition definition, ThrowingFunction<T, R> action) {
         var proxies = ClientProxies.getProxies();
         for (var proxy : proxies) {
             var ds = proxy.getDataSource(this);
             if (ds != null) {
-                return executeInTransaction(ds, definition, action);
+                return TransactionSupport.executeInTransaction((T) this, ds, definition, action);
             }
         }
-        return executeInTransaction(ClientProxies.getDefaultDataSource(), definition, action);
-    }
-
-    @SuppressWarnings("unchecked")
-    private <R> R executeInTransaction(
-            Object dataSource, TransactionDefinition definition, ThrowingFunction<T, R> action) {
-        var context = resolveContext(dataSource);
-        var client = (T) context.client();
-        var tm = context.transactionManager();
-        var status = tm.getTransaction(definition);
-        R result;
-        try {
-            result = action.apply(client);
-        } catch (Throwable e) {
-            log.error("An exception occurs in the transaction, rolling back", e);
-            tm.rollback(status);
-            throw wrapRuntimeException(e);
-        }
-        tm.commit(status);
-        return result;
-    }
-
-    private static RuntimeException wrapRuntimeException(Throwable ex) {
-        if (ex instanceof RuntimeException runtimeException) {
-            return runtimeException;
-        }
-        return new UndeclaredThrowableException(ex);
+        return TransactionSupport.executeInTransaction(
+                (T) this, ClientProxies.getDefaultDataSource(), definition, action);
     }
 }
