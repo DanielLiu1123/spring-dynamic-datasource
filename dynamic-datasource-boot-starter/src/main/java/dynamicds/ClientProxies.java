@@ -6,6 +6,7 @@ import java.util.function.Supplier;
 import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.transaction.autoconfigure.TransactionManagerCustomizers;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.util.function.SingletonSupplier;
@@ -16,11 +17,7 @@ public final class ClientProxies {
 
     private static final Supplier<List<ClientProxy>> PROXIES = SingletonSupplier.of(() -> {
         var context = SpringUtil.getContext();
-        var proxies = context.getBeanProvider(ClientProxy.class).orderedStream().toList();
-        if (proxies.isEmpty()) {
-            log.warn("No ClientProxy beans found in the application context.");
-        }
-        return proxies;
+        return context.getBeanProvider(ClientProxy.class).orderedStream().toList();
     });
 
     private static final Supplier<DataSource> DEFAULT_DATA_SOURCE = SingletonSupplier.of(() -> {
@@ -34,12 +31,13 @@ public final class ClientProxies {
     });
 
     private static final Supplier<PlatformTransactionManager> DEFAULT_TRANSACTION_MANAGER = SingletonSupplier.of(() -> {
-        var tm = SpringUtil.getContext()
-                .getBeanProvider(PlatformTransactionManager.class)
-                .getIfUnique();
-        if (tm == null) {
-            return new DataSourceTransactionManager(Objects.requireNonNull(DEFAULT_DATA_SOURCE.get()));
-        }
+        var context = SpringUtil.getContext();
+        var tm = context.getBeanProvider(PlatformTransactionManager.class)
+                .getIfUnique(() -> new DataSourceTransactionManager(Objects.requireNonNull(DEFAULT_DATA_SOURCE.get())));
+        // see
+        // org.springframework.boot.jdbc.autoconfigure.DataSourceTransactionManagerAutoConfiguration.JdbcTransactionManagerConfiguration.transactionManager
+        context.getBeanProvider(TransactionManagerCustomizers.class)
+                .ifAvailable(customizers -> customizers.customize(tm));
         return tm;
     });
 
