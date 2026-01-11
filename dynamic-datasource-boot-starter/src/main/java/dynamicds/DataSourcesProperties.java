@@ -43,8 +43,12 @@ public record DataSourcesProperties(List<DataSource> datasources) {
             result.setJdbcUrl(url);
             result.setUsername(username);
             result.setPassword(password);
-            result.setMaximumPoolSize(maximumPoolSize);
-            result.setMinimumIdle(minimumIdle);
+            if (maximumPoolSize > 0) {
+                result.setMaximumPoolSize(maximumPoolSize);
+            }
+            if (minimumIdle > 0) {
+                result.setMinimumIdle(minimumIdle);
+            }
             return result;
         }
 

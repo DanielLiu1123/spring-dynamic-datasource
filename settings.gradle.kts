@@ -18,6 +18,10 @@ rootProject.name = "spring-dynamic-datasource"
 
 include(":dynamic-datasource-boot-starter")
 
+include(":examples:jdbc-client")
+include(":examples:jpa")
+include(":examples:mybatis")
+
 // Auto install git hooks
 val hooksDir = File(rootDir, ".git/hooks")
 if (hooksDir.exists() && hooksDir.isDirectory) {

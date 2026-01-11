@@ -5,6 +5,7 @@ val mybatisSpringBootVersion: String = providers.gradleProperty("mybatisSpringBo
 dependencies {
     api("org.springframework.boot:spring-boot-starter")
 
+    optional("org.springframework.boot:spring-boot-starter-jdbc")
     optional("org.springframework.boot:spring-boot-starter-data-jpa")
     optional("org.mybatis.spring.boot:mybatis-spring-boot-starter:$mybatisSpringBootVersion")
 }
