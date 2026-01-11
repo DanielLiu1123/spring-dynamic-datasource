@@ -4,18 +4,35 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 import javax.sql.DataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.util.function.SingletonSupplier;
 
 public final class ClientProxies {
 
-    private static final Supplier<List<ClientProxy>> PROXIES = SingletonSupplier.of(() -> SpringUtil.getContext()
-            .getBeanProvider(ClientProxy.class)
-            .orderedStream()
-            .toList());
-    private static final Supplier<DataSource> DEFAULT_DATA_SOURCE =
-            SingletonSupplier.of(() -> SpringUtil.getContext().getBean("dataSource", DataSource.class));
+    private static final Logger log = LoggerFactory.getLogger(ClientProxies.class);
+
+    private static final Supplier<List<ClientProxy>> PROXIES = SingletonSupplier.of(() -> {
+        var context = SpringUtil.getContext();
+        var proxies = context.getBeanProvider(ClientProxy.class).orderedStream().toList();
+        if (proxies.isEmpty()) {
+            log.warn("No ClientProxy beans found in the application context.");
+        }
+        return proxies;
+    });
+
+    private static final Supplier<DataSource> DEFAULT_DATA_SOURCE = SingletonSupplier.of(() -> {
+        var context = SpringUtil.getContext();
+        try {
+            return context.getBean("dataSource", DataSource.class);
+        } catch (Exception e) {
+            log.debug("Primary dataSource bean not found, trying by type.");
+            return context.getBean(DataSource.class);
+        }
+    });
+
     private static final Supplier<PlatformTransactionManager> DEFAULT_TRANSACTION_MANAGER = SingletonSupplier.of(() -> {
         var tm = SpringUtil.getContext()
                 .getBeanProvider(PlatformTransactionManager.class)

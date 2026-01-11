@@ -40,7 +40,7 @@ public class MyBatisClientProxy implements ClientProxy {
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T> T newClient(T client, Object dataSource) {
+    public <T> T createClient(T client, Object dataSource) {
         return (T) getOrRegisterMapper(client, determineDataSource(dataSource));
     }
 
@@ -55,7 +55,7 @@ public class MyBatisClientProxy implements ClientProxy {
     }
 
     @Override
-    public PlatformTransactionManager newTransactionManager(Object dataSource) {
+    public PlatformTransactionManager createTransactionManager(Object dataSource) {
         return getOrRegisterTransactionManager(determineDataSource(dataSource));
     }
 
