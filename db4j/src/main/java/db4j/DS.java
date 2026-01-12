@@ -6,33 +6,25 @@ package db4j;
 public interface DS {
 
     /**
-     * Stable logical name of this datasource (e.g. "main").
-     */
-    String name();
-
-    /**
      * Obtain a session and run a callback (no transaction).
      */
-    <T> T withSession(SessionCallback<T> fn);
+    <T> T conn(ConnCallback<T> fn);
 
     /**
      * Execute within a transaction; auto commit on success, rollback on exception.
      */
-    <T> T inTx(TxOptions opts, TxCallback<T> fn);
+    <T> T tx(TxOptions opts, TxCallback<T> fn);
 
-    default <T> T inTx(TxCallback<T> fn) {
-        return inTx(TxOptions.defaults(), fn);
+    default <T> T tx(TxCallback<T> fn) {
+        return tx(TxOptions.defaults(), fn);
     }
-
-    /**
-     * Stateless access factory for this datasource.
-     */
-    Access access();
 
     /**
      * Non-transactional client (each call may use its own connection).
+     * @param clientType the client type
+     * @return the client instance
+     * @param <C> the client type
+     * @throws IllegalStateException if no client resolver is found for the given type
      */
-    default <C> C client(Class<C> clientType) {
-        return access().client(clientType);
-    }
+    <C> C client(Class<C> clientType) throws IllegalStateException;
 }

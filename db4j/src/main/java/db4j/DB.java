@@ -15,12 +15,12 @@ public interface DB {
     /**
      * Register a new datasource by name.
      */
-    void register(String name, DataSource dataSource);
+    void registerDataSource(String name, DataSource dataSource);
 
     /**
      * Remove a registered datasource by name.
      */
-    void unregister(String name);
+    void unregisterDataSource(String name);
 
     /**
      * Create a new DB instance.

@@ -10,7 +10,7 @@ public interface ResolveContext {
     /**
      * Current session; may be null for non-transactional access.
      */
-    Session session();
+    Conn session();
 
     /**
      * Optional access to underlying resources (may return null).

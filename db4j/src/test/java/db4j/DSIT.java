@@ -30,14 +30,16 @@ class DSIT {
     @Test
     void readWriteSeparation() {
         var db = DB.create();
-        db.register("writer", newDataSource(postgres1));
-        db.register("reader", newDataSource(postgres2));
+        db.registerDataSource("writer", newDataSource(postgres1));
+        db.registerDataSource("reader", newDataSource(postgres2));
 
-        var writerDS = db.ds("writer");
-        var readerDS = db.ds("reader");
+        DS writerDS = db.ds("writer");
+        DS readerDS = db.ds("reader");
 
-        writerDS.inTx(tx -> {
-            var mapper = tx.client(UserMapper.class);
+        assertThat(writerDS.client(UserMapper.class).findAll()).isEmpty();
+
+        writerDS.tx(tx -> {
+            UserMapper mapper = tx.client(UserMapper.class);
             mapper.insert(new User(1L, "Alice"));
             mapper.insert(new User(2L, "Bob"));
             return 0;

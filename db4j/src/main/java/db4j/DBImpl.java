@@ -10,7 +10,7 @@ import javax.sql.DataSource;
  */
 final class DBImpl implements DB {
 
-    private final ConcurrentMap<String, DS> datasources = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, DSImpl> datasources = new ConcurrentHashMap<>();
 
     @Override
     public DS ds(String name) {
@@ -21,15 +21,23 @@ final class DBImpl implements DB {
     }
 
     @Override
-    public void register(String name, DataSource dataSource) {
+    public void registerDataSource(String name, DataSource dataSource) {
         Objects.requireNonNull(name, "name cannot be null");
         Objects.requireNonNull(dataSource, "dataSource cannot be null");
         datasources.put(name, new DSImpl(name, dataSource));
     }
 
     @Override
-    public void unregister(String name) {
+    public void unregisterDataSource(String name) {
         Objects.requireNonNull(name, "name cannot be null");
         datasources.remove(name);
+    }
+
+    void addClientResolver(String dsName, ClientResolver resolver) {
+        Objects.requireNonNull(dsName, "dsName cannot be null");
+        Objects.requireNonNull(resolver, "resolver cannot be null");
+        var ds = datasources.get(dsName);
+        if (ds == null) throw new IllegalArgumentException("No datasource named " + dsName);
+        ds.addClientResolver(resolver);
     }
 }
