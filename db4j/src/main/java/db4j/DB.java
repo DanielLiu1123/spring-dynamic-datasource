@@ -1,0 +1,33 @@
+package db4j;
+
+import javax.sql.DataSource;
+
+/**
+ * Entry point / registry for configured datasources.
+ */
+public interface DB {
+
+    /**
+     * Get a strong handle to a configured datasource by name.
+     */
+    DS datasource(String name);
+
+    /**
+     * Register a new datasource by name.
+     */
+    void register(String name, DataSource dataSource);
+
+    /**
+     * Remove a registered datasource by name.
+     */
+    void unregister(String name);
+
+    /**
+     * Create a new DB instance.
+     *
+     * @return new DB instance
+     */
+    static DB create() {
+        return new DBImpl();
+    }
+}

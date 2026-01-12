@@ -17,6 +17,7 @@ pluginManagement {
 rootProject.name = "spring-dynamic-datasource"
 
 include(":dynamic-datasource-boot-starter")
+include(":db4j")
 
 include(":examples:mybatis")
 

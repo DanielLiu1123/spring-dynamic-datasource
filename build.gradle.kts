@@ -94,7 +94,7 @@ subprojects {
             excludedPaths = ".*/generated/.*"
             // https://github.com/uber/NullAway/wiki/Configuration
             check("NullAway", net.ltgt.gradle.errorprone.CheckSeverity.ERROR)
-            option("NullAway:AnnotatedPackages", "com.example")
+            option("NullAway:AnnotatedPackages", "db4j")
             option("NullAway:HandleTestAssertionLibraries", "true")
         }
     }

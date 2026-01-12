@@ -1,18 +1,6 @@
-# template-gradle
+# db4j
 
-A Gradle project template with integrated GitHub actions, linting, formatting, and Maven Central publishing workflow.
-
-```shell
-gh repo create <your-repo-name> --template DanielLiu1123/template-gradle --public
-```
-
-## Build
-
-This project uses [Spotless](https://github.com/diffplug/spotless) and [Spotbugs](https://github.com/spotbugs/spotbugs) for formating and linting.
-
-```shell
-./gradlew build
-```
+A Java library for database operations.
 
 ## Publishing
 
