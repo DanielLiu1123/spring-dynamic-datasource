@@ -33,10 +33,10 @@ class DSIT {
         db.register("writer", newDataSource(postgres1));
         db.register("reader", newDataSource(postgres2));
 
-        var writerDS = db.datasource("writer");
-        var readerDS = db.datasource("reader");
+        var writerDS = db.ds("writer");
+        var readerDS = db.ds("reader");
 
-        writerDS.tx(tx -> {
+        writerDS.inTx(tx -> {
             var mapper = tx.client(UserMapper.class);
             mapper.insert(new User(1L, "Alice"));
             mapper.insert(new User(2L, "Bob"));
