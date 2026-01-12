@@ -23,7 +23,7 @@ public final class MyBatisClientResolver implements ClientResolver {
                 new Environment(MyBatisClientResolver.class.getName(), new JdbcTransactionFactory(), dataSource));
         var sqlSessionFactory = new SqlSessionFactoryBuilder().build(configuration);
 
-        var ss = sqlSessionFactory.openSession();
+        var ss = connection == null ? sqlSessionFactory.openSession() : sqlSessionFactory.openSession(connection);
         return sqlSessionFactory.getConfiguration().getMapper(type, ss);
     }
 }

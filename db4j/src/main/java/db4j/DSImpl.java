@@ -68,15 +68,20 @@ final class DSImpl implements DS {
     }
 
     <C> C client(@Nullable Connection connection, Class<C> clientType) throws IllegalStateException {
+        if (connection != null) {
+            return resolveClient(connection, clientType);
+        }
         var className = clientType.getName();
-        var client = clientCache.computeIfAbsent(className, k -> {
-            for (var resolver : DSImpl.this.clientResolvers) {
-                if (resolver.supports(clientType)) {
-                    return resolver.resolve(dataSource, connection, clientType);
-                }
-            }
-            throw new IllegalStateException("No client resolver for type " + className);
-        });
+        var client = clientCache.computeIfAbsent(className, k -> resolveClient(null, clientType));
         return clientType.cast(client);
+    }
+
+    private <C> C resolveClient(@Nullable Connection connection, Class<C> clientType) {
+        for (var resolver : DSImpl.this.clientResolvers) {
+            if (resolver.supports(clientType)) {
+                return resolver.resolve(dataSource, connection, clientType);
+            }
+        }
+        throw new IllegalStateException("No client resolver for type " + clientType.getName());
     }
 }
