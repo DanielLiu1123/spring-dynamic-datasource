@@ -4,16 +4,16 @@ import java.sql.Connection;
 
 final class ConnImpl implements Conn {
 
-    private final DS ds;
-    private final Connection conn;
+    private final DSImpl ds;
+    private final Connection connection;
 
-    ConnImpl(DS ds, Connection conn) {
+    ConnImpl(DSImpl ds, Connection connection) {
         this.ds = ds;
-        this.conn = conn;
+        this.connection = connection;
     }
 
     @Override
-    public DS ds() {
-        return ds;
+    public <C> C client(Class<C> type) {
+        return ds.client(connection, type);
     }
 }

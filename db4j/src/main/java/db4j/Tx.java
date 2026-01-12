@@ -9,5 +9,5 @@ public interface Tx extends Conn {
     /**
      * Options used to create this tx.
      */
-    TxOptions options();
+    //    TxOptions options();
 }
