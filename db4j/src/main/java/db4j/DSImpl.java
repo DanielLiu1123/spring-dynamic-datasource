@@ -16,19 +16,24 @@ final class DSImpl implements DS {
     }
 
     @Override
-    public <T> T conn(ConnCallback<T> fn) {
+    public String name() {
+        return name;
+    }
+
+    @Override
+    public <T> T withSession(SessionCallback<T> fn) {
         // Not implemented yet
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public <T> T tx(TxOptions opts, TxCallback<T> fn) {
+    public <T> T inTx(TxOptions opts, TxCallback<T> fn) {
         // Not implemented yet
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public <C> C client(Class<C> clientType) {
+    public Access access() {
         // Not implemented yet
         throw new UnsupportedOperationException();
     }

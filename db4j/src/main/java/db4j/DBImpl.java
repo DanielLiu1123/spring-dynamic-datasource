@@ -13,7 +13,7 @@ final class DBImpl implements DB {
     private final ConcurrentMap<String, DS> datasources = new ConcurrentHashMap<>();
 
     @Override
-    public DS datasource(String name) {
+    public DS ds(String name) {
         Objects.requireNonNull(name, "name cannot be null");
         var ds = datasources.get(name);
         if (ds == null) throw new IllegalArgumentException("No datasource named " + name);

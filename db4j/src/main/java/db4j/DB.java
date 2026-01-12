@@ -10,7 +10,7 @@ public interface DB {
     /**
      * Get a strong handle to a configured datasource by name.
      */
-    DS datasource(String name);
+    DS ds(String name);
 
     /**
      * Register a new datasource by name.
