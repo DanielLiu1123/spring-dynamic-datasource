@@ -18,7 +18,8 @@ final class DSImpl implements DS {
     private final String name;
     private final DataSource dataSource;
     private final List<ClientResolver> clientResolvers = Collections.synchronizedList(new ArrayList<>());
-    private final ConcurrentMap<String, Object> clientCache = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Object> dsCache = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Object> connCache = new ConcurrentHashMap<>();
 
     DSImpl(String name, DataSource dataSource) {
         this.name = name;
@@ -68,11 +69,14 @@ final class DSImpl implements DS {
     }
 
     <C> C client(@Nullable Connection connection, Class<C> clientType) throws IllegalStateException {
-        if (connection != null) {
-            return resolveClient(connection, clientType);
-        }
         var className = clientType.getName();
-        var client = clientCache.computeIfAbsent(className, k -> resolveClient(null, clientType));
+        if (connection != null) {
+            var key = name + "@" + System.identityHashCode(connection);
+            var client = connCache.computeIfAbsent(key, k -> resolveClient(connection, clientType));
+            dsCache.putIfAbsent(className, client);
+            return clientType.cast(client);
+        }
+        var client = dsCache.computeIfAbsent(className, k -> resolveClient(null, clientType));
         return clientType.cast(client);
     }
 
